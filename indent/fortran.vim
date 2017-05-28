@@ -7,10 +7,12 @@
 " Installation: Place this script in the $HOME/.vim/after/indent/ directory
 "               and use it with Vim 7.1 and Ajit J. Thakkar's Vim scripts
 "               for Fortran (http://www.unb.ca/chem/ajit/)
-" Maintainer:   Sébastien Burton <sebastien.burton@gmail.com>
+" Maintainer:   SÃ©bastien Burton <sebastien.burton@gmail.com>
 " License:      Public domain
 " Version:      0.4
 " Last Change:  2011 May 25
+
+" Modification: 2017 May 28 Han correct indention for & after elseif
 
 " Modified indentation rules are used if the Fortran source code is free
 " source form, else nothing is done
@@ -34,6 +36,9 @@ function SebuFortranGetFreeIndent()
 	if getline(v:lnum) =~ '^\s*#'
 		return 0
 	endif
+	if getline(v:lnum) =~ '^\s*!'
+		return 0
+	endif
 	" Previous non-blank non-preprocessor line
 	let lnum = SebuPrevNonBlankNonCPP(v:lnum-1)
 	" No indentation at the top of the file
@@ -50,8 +55,20 @@ function SebuFortranGetFreeIndent()
 	" Disappering	1	0	|	-1	Unindent
 	" Continued		1	1	|	0	No change
 	let result = -SebuIsFortranContStat(lnum-1)+SebuIsFortranContStat(lnum)
+        
+        let ifcount = 0
+        let pnum = lnum
+        while SebuIsFortranContStat(pnum)
+           if getline(pnum) =~? '^\s*elseif\s*(.*&\s*$' 
+              let ifcount = 1
+              break
+           endif
+           let pnum = pnum -1
+        endwhile
+
 	" One shiftwidth indentation for continued statements
 	let ind += result*&sw
+        let ind -= ifcount*&sw
 	" One shiftwidth indentation for subroutine, function and forall's bodies
 	let line = getline(lnum)
 	if line =~? '^\s*\(\(recursive\s*\)\=pure\|elemental\)\=\s*subroutine'
@@ -61,9 +78,10 @@ function SebuFortranGetFreeIndent()
 				\ || line =~? '^\s*\(forall\)'
 		let ind += &sw
 	endif
-	if getline(v:lnum) =~? '^\s*end\s*\(subroutine\|function\|forall\)'
-		let ind -= &sw
-	endif
+        if getline(v:lnum) =~? '^\s*end\s*\(subroutine\|function\|forall\)'
+           let ind -= &sw
+        endif
+
 	" You shouldn't use variable names begining with 'puresubroutine',
 	" 'function', 'endforall', etc. as these would make the indentation
 	" collapse: it's easier to pay attention than to implement the exceptions
@@ -75,7 +93,7 @@ endfunction
 " neither blank nor preprocessor instruction.
 function SebuPrevNonBlankNonCPP(lnum)
 	let lnum = prevnonblank(a:lnum)
-	while getline(lnum) =~ '^#'
+	while getline(lnum) =~ '^#'  || getline(lnum) =~ '^\s*!'
 		let lnum = prevnonblank(lnum-1)
 	endwhile
 	return lnum
