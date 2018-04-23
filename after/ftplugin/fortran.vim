@@ -90,6 +90,12 @@ function FortranGetIndent(lnum)
   let prev2line=getline(a:lnum-1)
   let prev2stat=substitute(prev2line, '!.*$', '', '')
 
+  if getline(v:lnum) =~ '^\s*[!#]'
+   let ind=0
+   return ind
+  endif
+
+
   "Indent do loops only if they are all guaranteed to be of do/end do type
   if exists("b:fortran_do_enddo") || exists("g:fortran_do_enddo")
     if prevstat =~? '^\s*\(\d\+\s\)\=\s*\(\a\w*\s*:\)\=\s*do\>'
@@ -163,8 +169,14 @@ function FortranGetIndent(lnum)
 endfunction
 
 function FortranGetFreeIndent()
-  "Find the previous non-blank line
+  "Find the previous non-blank line and non-comment line
   let lnum = prevnonblank(v:lnum - 1)
+  while getline(lnum) =~ '^\s*[!#]'
+    let lnum = prevnonblank(lnum-1)
+    if lnum == 0
+      break
+    endif
+  endwhile
 
   "Use zero indent at the top of the file
   if lnum == 0
