@@ -91,10 +91,21 @@ function FortranGetIndent(lnum)
   let prev2stat=substitute(prev2line, '!.*$', '', '')
 
   if getline(v:lnum) =~ '^\s*[!#]'
-   let ind=0
-   return ind
+    return indent(v:lnum)
   endif
 
+  if getline(v:lnum) =~ '^\s*\d\+\s\+[^,].*$'
+    "let linum=substitute(getline(v:lnum),'^\s*\(\d\+\).*$','\1','')
+    let numspace=substitute(getline(v:lnum),'^\s*\(\d\+\s\+\)[^,].*$','\1','')
+   " let content=substitute(getline(v:lnum),'^\s*\d\+\s*\(.*\)','\1','')
+    let beforlen=strlen(numspace)
+    if beforlen < ind
+      let ind = ind-beforlen
+    else
+      let ind = 0
+    endif
+    return ind
+  endif
 
   "Indent do loops only if they are all guaranteed to be of do/end do type
   if exists("b:fortran_do_enddo") || exists("g:fortran_do_enddo")
@@ -171,7 +182,7 @@ endfunction
 function FortranGetFreeIndent()
   "Find the previous non-blank line and non-comment line
   let lnum = prevnonblank(v:lnum - 1)
-  while getline(lnum) =~ '^\s*[!#]'
+  while (getline(lnum) =~ '^\s*[!#]') || (getline(lnum) =~ '^\s*\d\+\s\+[^,].*$')
     let lnum = prevnonblank(lnum-1)
     if lnum == 0
       break
