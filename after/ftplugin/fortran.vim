@@ -89,40 +89,55 @@ function FortranGetIndent(lnum)
   let prevstat=substitute(prevline, '!.*$', '', '')
   let prev2line=getline(a:lnum-1)
   let prev2stat=substitute(prev2line, '!.*$', '', '')
-
-  if getline(v:lnum) =~ '^\s*[!#]'
+  let thisline=getline(v:lnum)
+  if thisline =~ '^\s*[!#]'
     return indent(v:lnum)
   endif
-
-  if getline(v:lnum) =~ '^\s*\d\+\s\+[^,].*$'
-    "let linum=substitute(getline(v:lnum),'^\s*\(\d\+\).*$','\1','')
-    let numspace=substitute(getline(v:lnum),'^\s*\(\d\+\s\+\)[^,].*$','\1','')
-   " let content=substitute(getline(v:lnum),'^\s*\d\+\s*\(.*\)','\1','')
-    let beforlen=strlen(numspace)
-    if beforlen < ind
-      let ind = ind-beforlen
-    else
-      let ind = 0
-    endif
-    return ind
+  echo prevline
+  " replace linenumebr by space
+  if prevline =~? '^\s*\d\+\s\+[^,].*$'
+    let ind=strlen(substitute(prevline, '^\(\s*\d\+\s\+\).*$', '\1', ''))
+    let prevline=substitute(prevline,'^\s*\d\+\s\+\(.*\)$', '\1', '')
+    let prevline=repeat(' ',ind).prevline
+    let prevstat=substitute(prevline, '!.*$', '', '')
+  endif
+  if prev2line =~? '^\s*\d\+\s\+[^,].*$'
+"   let linenumebr=substitute(prevline, '^\s*\(\d+\)\s+.*$','\1','')
+    let ind2=strlen(substitute(prev2line, '^\(\s*\d\+\s\+\).*$', '\1', ''))
+    let prev2line=substitute(prev2line,'^\s*\d\+\s\+\(.*\)$', '\1', '')
+    let prev2line=repeat(' ',ind2).prev2line
+    let prev2stat=substitute(prev2line, '!.*$', '', '')
   endif
 
+  if thisline =~? '^\s*\d\+\s\+[^,].*$'
+    " number of char before line content
+    let beforlen=strlen(substitute(thisline,'^\s*\(\d\+\s\+\)[^,].*$','\1',''))
+    let ind = ind-beforlen
+    " replace linenumebr by space
+    let ind3=strlen(substitute(thisline, '^\(\s*\d\+\s\+\).*$', '\1', ''))
+    let thisline=substitute(thisline,'^\s*\d\+\s\+\(.*\)$', '\1', '')
+    let thisline=repeat(' ',ind3).thisline
+    if ind < 0
+      return 0
+    endif
+  endif
+  
   "Indent do loops only if they are all guaranteed to be of do/end do type
   if exists("b:fortran_do_enddo") || exists("g:fortran_do_enddo")
     if prevstat =~? '^\s*\(\d\+\s\)\=\s*\(\a\w*\s*:\)\=\s*do\>'
       let ind = ind + shiftwidth()
     endif
-    if getline(v:lnum) =~? '^\s*\(\d\+\s\)\=\s*end\s*do\>'
+    if thisline =~? '^\s*\(\d\+\s\)\=\s*end\s*do\>'
       let ind = ind - shiftwidth()
     endif
   endif
 
   "Add a shiftwidth to statements following if, else, else if, case, class,
   "where, else where, forall, type, interface and associate statements
-  if prevstat =~? '^\s*\d*\s+\(case\|class\|else\|else\s*if\|else\s*where\)\>'
-	\ ||prevstat=~? '^\s*\d*\s+\(type\|interface\|associate\|enum\)\>'
-	\ ||prevstat=~?'^\s*\d*\s+\(\d\+\s\)\=\s*\(\a\w*\s*:\)\=\s*\(forall\|where\|block\)\>'
-	\ ||prevstat=~? '^\s*\d*\s+\(\d\+\s\)\=\s*\(\a\w*\s*:\)\=\s*if\>'
+  if prevstat =~? '^\s*\(case\|class\|else\|else\s*if\|else\s*where\)\>'
+	\ ||prevstat=~? '^\s*\(type\|interface\|associate\|enum\)\>'
+	\ ||prevstat=~?'^\s*\(\d\+\s\)\=\s*\(\a\w*\s*:\)\=\s*\(forall\|where\|block\)\>'
+	\ ||prevstat=~? '^\s*\(\d\+\s\)\=\s*\(\a\w*\s*:\)\=\s*if\>'
      let ind = ind + shiftwidth()
     " Remove unwanted indent after logical and arithmetic ifs
     if prevstat =~? '\<if\>' && prevstat !~? '\<then\>'
@@ -146,8 +161,8 @@ function FortranGetIndent(lnum)
             \ ||prevstat =~? '^\s*'.type.prefix.'function\>'
       let ind = ind + shiftwidth()
     endif
-    if getline(v:lnum) =~? '^\s*contains\>'
-          \ ||getline(v:lnum)=~? '^\s*end\s*'
+    if thisline =~? '^\s*contains\>'
+          \ ||thisline=~? '^\s*end\s*'
           \ .'\(function\|subroutine\|module\|submodule\|program\)\>'
       let ind = ind - shiftwidth()
     endif
@@ -156,7 +171,7 @@ function FortranGetIndent(lnum)
   "Subtract a shiftwidth from else, else if, elsewhere, case, class, end if,
   " end where, end select, end forall, end interface, end associate,
   " end enum, end type, end block and end type statements
-  if getline(v:lnum) =~? '^\s*\(\d\+\s\)\=\s*'
+  if thisline =~? '^\s*\(\d\+\s\)\=\s*'
         \. '\(else\|else\s*if\|else\s*where\|case\|class\|'
         \. 'end\s*\(if\|where\|select\|interface\|'
         \. 'type\|forall\|associate\|enum\|block\)\)\>'
@@ -182,7 +197,7 @@ endfunction
 function FortranGetFreeIndent()
   "Find the previous non-blank line and non-comment line
   let lnum = prevnonblank(v:lnum - 1)
-  while (getline(lnum) =~ '^\s*[!#]') || (getline(lnum) =~ '^\s*\d\+\s\+[^,].*$')
+  while (getline(lnum) =~ '^\s*[!#]')
     let lnum = prevnonblank(lnum-1)
     if lnum == 0
       break
