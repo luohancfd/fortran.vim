@@ -119,10 +119,10 @@ function FortranGetIndent(lnum)
 
   "Add a shiftwidth to statements following if, else, else if, case, class,
   "where, else where, forall, type, interface and associate statements
-  if prevstat =~? '^\s*\(case\|class\|else\|else\s*if\|else\s*where\)\>'
-	\ ||prevstat=~? '^\s*\(type\|interface\|associate\|enum\)\>'
-	\ ||prevstat=~?'^\s*\(\d\+\s\)\=\s*\(\a\w*\s*:\)\=\s*\(forall\|where\|block\)\>'
-	\ ||prevstat=~? '^\s*\(\d\+\s\)\=\s*\(\a\w*\s*:\)\=\s*if\>'
+  if prevstat =~? '^\s*\d*\s+\(case\|class\|else\|else\s*if\|else\s*where\)\>'
+	\ ||prevstat=~? '^\s*\d*\s+\(type\|interface\|associate\|enum\)\>'
+	\ ||prevstat=~?'^\s*\d*\s+\(\d\+\s\)\=\s*\(\a\w*\s*:\)\=\s*\(forall\|where\|block\)\>'
+	\ ||prevstat=~? '^\s*\d*\s+\(\d\+\s\)\=\s*\(\a\w*\s*:\)\=\s*if\>'
      let ind = ind + shiftwidth()
     " Remove unwanted indent after logical and arithmetic ifs
     if prevstat =~? '\<if\>' && prevstat !~? '\<then\>'
